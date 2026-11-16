@@ -1,12 +1,13 @@
 import random
 import re
+import sys
 from matplotlib import text
 import gensim.downloader as gsd
 # You may need to install gensim first with: pip install gensim
 
 # Download and load the Google News word2vec vectors
 model = gsd.load("word2vec-google-news-300")
-D=model.vector_size
+
 # alternative sets: "glove-wiki-gigaword-300" (GloVe) or "fasttext-wiki-news-subwords-300"
 
 # -------------------------
@@ -32,7 +33,12 @@ tokens = tokenize_sentence(user_sentence)
 # 3. Check if all the tokens are present in your word embeddings set. If not, display a note 
     # "Embeddings for some tokens are not available. Run the program again and try a different sentence" 
     # and exit [BPE will not have that problem, but that's beyond the scope of the assignment].
-
+missing = [tok for tok in tokens if tok not in model]
+if missing:
+    print(f"Missing tokens: {missing}")  
+    print("Embeddings for some tokens are not available. "
+          "Run the program again and try a different sentence")
+    sys.exit()
 # ----------------------------
 # 4. If all static embeddings exist, ask the user to pick one of the words (WORD) in the sentence, for example:
     # Input sentence: weather is nice 
