@@ -39,6 +39,7 @@ if missing:
     print("Embeddings for some tokens are not available. "
           "Run the program again and try a different sentence")
     sys.exit()
+
 # ----------------------------
 # 4. If all static embeddings exist, ask the user to pick one of the words (WORD) in the sentence, for example:
     # Input sentence: weather is nice 
@@ -48,6 +49,12 @@ if missing:
         #[2] is
         #[3] nice
         #[4] EXIT
+else:
+    print("Input sentence:", user_sentence)
+    print("\nWhich word do you want to analyze?")
+    for i, tok in enumerate(tokens, start=1):
+        print(f"[{i}] {tok}")
+    print(f"[{len(tokens) + 1}] EXIT")
 # -------------------------
 # 5. and create all contextualized word embeddings using a simplified self-attention mechanism. Simplifications:
     # your self-attention will run sequentially (real one is parallelized),
