@@ -35,9 +35,7 @@ tokens = tokenize_sentence(user_sentence)
     # and exit [BPE will not have that problem, but that's beyond the scope of the assignment].
 missing = [tok for tok in tokens if tok not in model]
 if missing:
-    print(f"Missing tokens: {missing}")  
-    print("Embeddings for some tokens are not available. "
-          "Run the program again and try a different sentence")
+    print("Embeddings for some tokens are not available. Run the program again and try a different sentence")
     sys.exit()
 
 # ----------------------------
@@ -77,8 +75,25 @@ print(f"You selected: {WORD}")
     # there is NO query weight matrix. Use a PCA or t-SNE projection/dimensionality reduction approach instead (you can assume query dimension to be ~10% of the actual static embedding dimension; it's fine to use existing Python packages for that purpose),
     # there is NO key weight matrix. Use a PCA or t-SNE (same as for query generation) projection/dimensionality reduction approach instead (you can assume key dimension to be ~10% of the actual static embedding dimension; it's fine to use existing Python packages for that purpose),
     # there is NO value weight matrix or it is an identity matrix. In other words: value vector is the same as the input static embedding.
+
+
 # --------------------------
 # 6. for the static embedding of WORD find its 3 (static WORD embedding static neighbors) nearest (cosine similarity is fine or you can use Euclidean distance) neighbors in the static embedding space,
+
+word_candidates = [w for w in model.index_to_key if w.isalpha() and w.islower()]
+similarities = []
+for w in word_candidates:
+    if w == WORD:
+        continue
+    sim = model.similarity(WORD, w)
+    similarities.append((w, sim))
+
+similarities.sort(key=lambda x: x[1], reverse=True)
+top3_static = similarities[:3]
+
+print(f"\n3 nearest static neighbors of '{WORD}':")
+for w, sim in top3_static:
+    print(f"  {w}: {sim:.4f}")
 # --------------------------
 # 7. for the contextualized embedding of WORD find its 3 (contextualized WORD  embedding static neighbors) nearest (cosine similarity is fine or you can use Euclidean distance) neighbors in the static embedding space,
 
