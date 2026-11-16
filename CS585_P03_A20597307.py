@@ -20,7 +20,12 @@ def tokenize_sentence(sentence):
 
 # -------------------------
 # 2. input a sentence from the user and tokenize it using the function above.
-user_sentence = input("Please enter a sentence: ")
+while True:
+    user_sentence = input("Please enter a sentence: ").strip()
+    if user_sentence:
+        break
+    print("Empty input - please type at least one word.")
+
 tokens = tokenize_sentence(user_sentence)
 
 # ----------------------------
