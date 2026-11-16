@@ -55,6 +55,22 @@ else:
     for i, tok in enumerate(tokens, start=1):
         print(f"[{i}] {tok}")
     print(f"[{len(tokens) + 1}] EXIT")
+
+    while True:
+        choice = input("Enter a number: ").strip()
+
+        if choice.isdigit() and 1 <= int(choice) <= len(tokens) + 1:
+            choice = int(choice)
+            break
+        print(f"Please enter a number between 1 and {len(tokens) + 1}.")
+
+if choice == len(tokens) + 1:
+        print("Exiting.")
+        sys.exit()
+ 
+word_idx = choice - 1
+WORD = tokens[word_idx]
+print(f"You selected: {WORD}")     
 # -------------------------
 # 5. and create all contextualized word embeddings using a simplified self-attention mechanism. Simplifications:
     # your self-attention will run sequentially (real one is parallelized),
