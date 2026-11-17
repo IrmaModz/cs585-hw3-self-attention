@@ -1,8 +1,10 @@
 import random
 import re
 import sys
-from matplotlib import text
+from matplotlib import pyplot as plt, text
 import gensim.downloader as gsd
+import numpy as np
+from sklearn.decomposition import PCA
 # You may need to install gensim first with: pip install gensim
 
 # Download and load the Google News word2vec vectors
@@ -47,7 +49,7 @@ if missing:
         #[2] is
         #[3] nice
         #[4] EXIT
-else:
+if not missing:
     print("Input sentence:", user_sentence)
     print("\nWhich word do you want to analyze?")
     for i, tok in enumerate(tokens, start=1):
@@ -75,27 +77,63 @@ print(f"You selected: {WORD}")
     # there is NO query weight matrix. Use a PCA or t-SNE projection/dimensionality reduction approach instead (you can assume query dimension to be ~10% of the actual static embedding dimension; it's fine to use existing Python packages for that purpose),
     # there is NO key weight matrix. Use a PCA or t-SNE (same as for query generation) projection/dimensionality reduction approach instead (you can assume key dimension to be ~10% of the actual static embedding dimension; it's fine to use existing Python packages for that purpose),
     # there is NO value weight matrix or it is an identity matrix. In other words: value vector is the same as the input static embedding.
+D   = model.vector_size
+d_k = int(0.10 * D)
 
 
+pca = PCA(n_components=d_k, whiten=False, random_state=0)
+pca.fit(model.vectors[:10000])     # 10k most frequent words (see note 4)
+
+
+def softmax(x):
+    e = np.exp(x - np.max(x))
+    return e / e.sum()
+
+X = np.array([model[tok] for tok in tokens])
+n = len(tokens)
+
+Q = pca.transform(X)
+K = Q
+V = X
+
+Z = np.zeros((n, D), dtype=np.float64)
+attention = np.zeros((n, n))
+
+for i in range(n):
+    scores = np.array([np.dot(Q[i], K[j]) / np.sqrt(d_k) for j in range(n)])
+    alpha = softmax(scores)
+    attention[i] = alpha
+    Z[i] = np.sum(alpha[:, np.newaxis] * V, axis=0)
+
+z_word = Z[word_idx]
+
+print(f"\nAttention weights for '{WORD}':")
+for tok, a in zip(tokens, attention[word_idx]):
+    print(f"  {tok}: {a:.4f}")
+    
 # --------------------------
 # 6. for the static embedding of WORD find its 3 (static WORD embedding static neighbors) nearest (cosine similarity is fine or you can use Euclidean distance) neighbors in the static embedding space,
-
-word_candidates = [w for w in model.index_to_key if w.isalpha() and w.islower()]
-similarities = []
-for w in word_candidates:
-    if w == WORD:
-        continue
-    sim = model.similarity(WORD, w)
-    similarities.append((w, sim))
-
-similarities.sort(key=lambda x: x[1], reverse=True)
-top3_static = similarities[:3]
+top3_static = model.most_similar(
+    positive=[WORD],
+    topn=3
+)
 
 print(f"\n3 nearest static neighbors of '{WORD}':")
 for w, sim in top3_static:
     print(f"  {w}: {sim:.4f}")
+
 # --------------------------
 # 7. for the contextualized embedding of WORD find its 3 (contextualized WORD  embedding static neighbors) nearest (cosine similarity is fine or you can use Euclidean distance) neighbors in the static embedding space,
+
+# word_candidates = set(w for w in model.index_to_key if w.isalpha() and w.islower())
+top3_contextualized = model.most_similar(
+    positive=[z_word],
+    topn=3
+)
+
+print(f"\n3 nearest neighbors of contextualized '{WORD}':")
+for w, sim in top3_contextualized:
+    print(f"  {w}: {sim:.4f}")
 
 # ---------------------------
 # 8. plot in 3D (use different color and / or labels) on a single figure:
@@ -104,17 +142,3 @@ for w, sim in top3_static:
     # static WORD embedding static nearest neighbors,
     # contextualized WORD embedding static nearest neighbors,
     # you can use PCA or t-SNE methods to reduce dimensionality (it's fine to use existing Python packages for that purpose).
-
-
-
-# For demonstration: pick two random words from the vocabulary
-# For simplicity, we look only at a subset of lowercased words
-# made ofalphabetic tokens to avoid phrases, numbers, and cases like "Wal_Mart"
-word_candidates = [w for w in model.index_to_key if w.isalpha() and w.islower()]
-random_word1, random_word2 = random.sample(word_candidates, 2)
-
-# Cosine similarity between the two word vectors
-similarity = model.similarity(random_word1, random_word2)
-
-print(f"Words: '{random_word1}' and '{random_word2}'")
-print(f"Cosine similarity: {similarity:.4f}")
