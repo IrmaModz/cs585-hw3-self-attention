@@ -126,10 +126,15 @@ for w, sim in top3_static:
 # 7. for the contextualized embedding of WORD find its 3 (contextualized WORD  embedding static neighbors) nearest (cosine similarity is fine or you can use Euclidean distance) neighbors in the static embedding space,
 
 # word_candidates = set(w for w in model.index_to_key if w.isalpha() and w.islower())
-top3_contextualized = model.most_similar(
+candidates = model.most_similar(
     positive=[z_word],
-    topn=3
+    topn=4
 )
+
+top3_contextualized = [
+    (w, sim) for w, sim in candidates
+    if w != WORD
+][:3]
 
 print(f"\n3 nearest neighbors of contextualized '{WORD}':")
 for w, sim in top3_contextualized:
@@ -142,3 +147,96 @@ for w, sim in top3_contextualized:
     # static WORD embedding static nearest neighbors,
     # contextualized WORD embedding static nearest neighbors,
     # you can use PCA or t-SNE methods to reduce dimensionality (it's fine to use existing Python packages for that purpose).
+def reduce_to_3d(vectors):
+    n_components = min(3, vectors.shape[0], vectors.shape[1])
+    pca = PCA(n_components=n_components)
+    pca.fit(vectors)
+    return pca
+
+plot_vectors = np.array([
+    model[WORD],
+    z_word,
+    *[model[w] for w, sim in top3_static],
+    *[model[w] for w, sim in top3_contextualized]
+])
+
+pca_3d = reduce_to_3d(plot_vectors)
+points = pca_3d.transform(plot_vectors)
+
+labels = (
+    [f"{WORD} (static)", f"{WORD} (contextualized)"]
+    + [w for w, sim in top3_static]
+    + [w for w, sim in top3_contextualized]
+)
+
+colors = (
+    ["red", "green"]
+    + ["orange"] * len(top3_static)
+    + ["blue"] * len(top3_contextualized)
+)
+
+fig = plt.figure(figsize=(12, 9))
+ax = fig.add_subplot(111, projection="3d")
+
+n_static = len(top3_static)
+
+for i, (x, y, z) in enumerate(points):
+
+    # Static group: blue, Contextualized group: red
+    if i == 0 or 2 <= i < 2 + n_static:
+        color = "royalblue"
+    else:
+        color = "crimson"
+
+    # Highlight the two selected WORD embeddings
+    is_target = i < 2
+    marker = "*" if is_target else "o"
+    size = 220 if is_target else 55
+
+    ax.quiver(
+        0, 0, 0, x, y, z,
+        color=color,
+        alpha=0.35,
+        arrow_length_ratio=0.08
+    )
+
+    ax.scatter(
+        x, y, z,
+        color=color,
+        marker=marker,
+        s=size,
+        depthshade=False
+    )
+
+    ax.text(x, y, z, f"  {labels[i]}", fontsize=9)
+
+# Legend
+from matplotlib.lines import Line2D
+
+legend_items = [
+    Line2D([0], [0], marker="*", color="w",
+           markerfacecolor="royalblue", markersize=15,
+           label="Static WORD"),
+
+    Line2D([0], [0], marker="o", color="w",
+           markerfacecolor="royalblue", markersize=8,
+           label="Static neighbors"),
+
+    Line2D([0], [0], marker="*", color="w",
+           markerfacecolor="crimson", markersize=15,
+           label="Contextualized WORD"),
+
+    Line2D([0], [0], marker="o", color="w",
+           markerfacecolor="crimson", markersize=8,
+           label="Contextualized neighbors")
+]
+
+ax.legend(handles=legend_items, loc="upper right")
+
+ax.set_xlabel("PC1")
+ax.set_ylabel("PC2")
+ax.set_zlabel("PC3")
+ax.set_title(f"Static vs Contextualized Embeddings: {WORD}")
+
+plt.tight_layout()
+plt.show()
