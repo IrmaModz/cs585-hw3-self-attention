@@ -13,21 +13,23 @@ model = gsd.load("word2vec-google-news-300")
 # alternative sets: "glove-wiki-gigaword-300" (GloVe) or "fasttext-wiki-news-subwords-300"
 
 # -------------------------
-# 1. Tokenize the sentence using the white-space-based tokenization [you are welcome to go beyond that and change it to BPE (your own implementation or existing code. Keep in mind the relationship between BPE vocabulary and your embeddings set!) for more self-exploration, BUT your submission should use white-space-based tokenization] approach.
-def tokenize_sentence(sentence):
-    # Simple whitespace-based tokenization
-    tokens = sentence.split()
-    #V = sorted(set(tokens))
-    #word_to_index = {word: i for i, word in enumerate(V)}
-    return tokens
+# 1. Ask the user to input a sentence in English (length of the sentence should not be restricted).
 
-# -------------------------
-# 2. input a sentence from the user and tokenize it using the function above.
 while True:
     user_sentence = input("Please enter a sentence: ").strip()
     if user_sentence:
         break
-    print("Empty input - please type at least one word.")
+    print("Empty input! Please type at least one word.")
+
+# -------------------------
+# 2. Tokenize the sentence using the white-space-based tokenization [you are welcome 
+# to go beyond that and change it to BPE (your own implementation or existing code. 
+# Keep in mind the relationship between BPE vocabulary and your embeddings set!) for more self-exploration, 
+# BUT your submission should use white-space-based tokenization] approach.
+
+def tokenize_sentence(sentence):
+    tokens = sentence.split()
+    return tokens
 
 tokens = tokenize_sentence(user_sentence)
 
@@ -35,6 +37,7 @@ tokens = tokenize_sentence(user_sentence)
 # 3. Check if all the tokens are present in your word embeddings set. If not, display a note 
     # "Embeddings for some tokens are not available. Run the program again and try a different sentence" 
     # and exit [BPE will not have that problem, but that's beyond the scope of the assignment].
+
 missing = [tok for tok in tokens if tok not in model]
 if missing:
     print("Embeddings for some tokens are not available. Run the program again and try a different sentence")
@@ -49,6 +52,7 @@ if missing:
         #[2] is
         #[3] nice
         #[4] EXIT
+
 if not missing:
     print("Input sentence:", user_sentence)
     print("\nWhich word do you want to analyze?")
@@ -70,20 +74,25 @@ if choice == len(tokens) + 1:
  
 word_idx = choice - 1
 WORD = tokens[word_idx]
-print(f"You selected: {WORD}")     
+
 # -------------------------
 # 5. and create all contextualized word embeddings using a simplified self-attention mechanism. Simplifications:
     # your self-attention will run sequentially (real one is parallelized),
-    # there is NO query weight matrix. Use a PCA or t-SNE projection/dimensionality reduction approach instead (you can assume query dimension to be ~10% of the actual static embedding dimension; it's fine to use existing Python packages for that purpose),
-    # there is NO key weight matrix. Use a PCA or t-SNE (same as for query generation) projection/dimensionality reduction approach instead (you can assume key dimension to be ~10% of the actual static embedding dimension; it's fine to use existing Python packages for that purpose),
-    # there is NO value weight matrix or it is an identity matrix. In other words: value vector is the same as the input static embedding.
+    # there is NO query weight matrix. 
+    # Use a PCA or t-SNE projection/dimensionality reduction approach instead 
+    # (you can assume query dimension to be ~10% of the actual static embedding dimension; 
+    # it's fine to use existing Python packages for that purpose),
+    # there is NO key weight matrix. Use a PCA or t-SNE (same as for query generation) projection/dimensionality
+    # reduction approach instead (you can assume key dimension to be ~10% of the actual static embedding dimension;
+    # it's fine to use existing Python packages for that purpose),
+    # there is NO value weight matrix or it is an identity matrix. In other words:
+    # value vector is the same as the input static embedding.
+
 D   = model.vector_size
 d_k = int(0.10 * D)
 
-
 pca = PCA(n_components=d_k, whiten=False, random_state=0)
-pca.fit(model.vectors[:10000])     # 10k most frequent words (see note 4)
-
+pca.fit(model.vectors[:10000])
 
 def softmax(x):
     e = np.exp(x - np.max(x))
@@ -107,25 +116,27 @@ for i in range(n):
 
 z_word = Z[word_idx]
 
-print(f"\nAttention weights for '{WORD}':")
+""" print(f"\nAttention weights for '{WORD}':")
 for tok, a in zip(tokens, attention[word_idx]):
-    print(f"  {tok}: {a:.4f}")
+    print(f"  {tok}: {a:.4f}") """
     
 # --------------------------
-# 6. for the static embedding of WORD find its 3 (static WORD embedding static neighbors) nearest (cosine similarity is fine or you can use Euclidean distance) neighbors in the static embedding space,
+# 6. for the static embedding of WORD find its 3 (static WORD embedding static neighbors) 
+# nearest (cosine similarity is fine or you can use Euclidean distance) neighbors in the static embedding space
 top3_static = model.most_similar(
     positive=[WORD],
     topn=3
 )
 
-print(f"\n3 nearest static neighbors of '{WORD}':")
+""" print(f"\n3 nearest static neighbors of '{WORD}':")
 for w, sim in top3_static:
-    print(f"  {w}: {sim:.4f}")
+    print(f"  {w}: {sim:.4f}") """
 
 # --------------------------
-# 7. for the contextualized embedding of WORD find its 3 (contextualized WORD  embedding static neighbors) nearest (cosine similarity is fine or you can use Euclidean distance) neighbors in the static embedding space,
+# 7. for the contextualized embedding of WORD find its 3 
+# (contextualized WORD  embedding static neighbors) nearest 
+# (cosine similarity is fine or you can use Euclidean distance) neighbors in the static embedding space,
 
-# word_candidates = set(w for w in model.index_to_key if w.isalpha() and w.islower())
 candidates = model.most_similar(
     positive=[z_word],
     topn=4
@@ -136,9 +147,9 @@ top3_contextualized = [
     if w != WORD
 ][:3]
 
-print(f"\n3 nearest neighbors of contextualized '{WORD}':")
+""" print(f"\n3 nearest neighbors of contextualized '{WORD}':")
 for w, sim in top3_contextualized:
-    print(f"  {w}: {sim:.4f}")
+    print(f"  {w}: {sim:.4f}") """
 
 # ---------------------------
 # 8. plot in 3D (use different color and / or labels) on a single figure:
@@ -147,6 +158,7 @@ for w, sim in top3_contextualized:
     # static WORD embedding static nearest neighbors,
     # contextualized WORD embedding static nearest neighbors,
     # you can use PCA or t-SNE methods to reduce dimensionality (it's fine to use existing Python packages for that purpose).
+
 def reduce_to_3d(vectors):
     n_components = min(3, vectors.shape[0], vectors.shape[1])
     pca = PCA(n_components=n_components)
@@ -182,13 +194,11 @@ n_static = len(top3_static)
 
 for i, (x, y, z) in enumerate(points):
 
-    # Static group: blue, Contextualized group: red
     if i == 0 or 2 <= i < 2 + n_static:
         color = "royalblue"
     else:
         color = "crimson"
 
-    # Highlight the two selected WORD embeddings
     is_target = i < 2
     marker = "*" if is_target else "o"
     size = 220 if is_target else 55
@@ -210,7 +220,6 @@ for i, (x, y, z) in enumerate(points):
 
     ax.text(x, y, z, f"  {labels[i]}", fontsize=9)
 
-# Legend
 from matplotlib.lines import Line2D
 
 legend_items = [
