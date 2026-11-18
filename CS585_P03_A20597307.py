@@ -1,5 +1,3 @@
-import random
-import re
 import sys
 from matplotlib import pyplot as plt, text
 import gensim.downloader as gsd
@@ -115,10 +113,6 @@ for i in range(n):
     Z[i] = np.sum(alpha[:, np.newaxis] * V, axis=0)
 
 z_word = Z[word_idx]
-
-""" print(f"\nAttention weights for '{WORD}':")
-for tok, a in zip(tokens, attention[word_idx]):
-    print(f"  {tok}: {a:.4f}") """
     
 # --------------------------
 # 6. for the static embedding of WORD find its 3 (static WORD embedding static neighbors) 
@@ -127,10 +121,6 @@ top3_static = model.most_similar(
     positive=[WORD],
     topn=3
 )
-
-""" print(f"\n3 nearest static neighbors of '{WORD}':")
-for w, sim in top3_static:
-    print(f"  {w}: {sim:.4f}") """
 
 # --------------------------
 # 7. for the contextualized embedding of WORD find its 3 
@@ -146,10 +136,6 @@ top3_contextualized = [
     (w, sim) for w, sim in candidates
     if w != WORD
 ][:3]
-
-""" print(f"\n3 nearest neighbors of contextualized '{WORD}':")
-for w, sim in top3_contextualized:
-    print(f"  {w}: {sim:.4f}") """
 
 # ---------------------------
 # 8. plot in 3D (use different color and / or labels) on a single figure:
